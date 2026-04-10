@@ -15,7 +15,18 @@ import {
   History,
   Target,
   Zap,
-  MessageSquare
+  MessageSquare,
+  MapPin,
+  Navigation,
+  Instagram,
+  LogOut,
+  User,
+  ShieldCheck,
+  ChevronDown,
+  ChevronUp,
+  Briefcase,
+  Bot,
+  Key
 } from 'lucide-react';
 import { ViewType, FilterState } from '../types';
 
@@ -26,6 +37,11 @@ interface SidebarProps {
   toggleSidebar: () => void;
   filters: FilterState;
   setFilters: (f: FilterState) => void;
+  user: any;
+  onLogout: () => void;
+  searchTerm: string;
+  setSearchTerm: (val: string) => void;
+  onInvestigate: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -33,14 +49,28 @@ const Sidebar: React.FC<SidebarProps> = ({
   setView, 
   isOpen, 
   toggleSidebar,
+  user,
+  onLogout,
+  searchTerm,
+  setSearchTerm,
+  onInvestigate
 }) => {
-  const menuItems = [
-    { id: 'dashboard' as ViewType, icon: LayoutDashboard, label: 'Painel Geral' },
-    { id: 'search' as ViewType, icon: Search, label: 'Consultas CNPJ/CPF' },
-    { id: 'lead_scan' as ViewType, icon: Target, label: 'Varredura de Leads' },
-    { id: 'biddings' as ViewType, icon: Gavel, label: 'Licitações' },
-    { id: 'whatsapp_groups' as ViewType, icon: MessageSquare, label: 'Grupos WhatsApp' },
+  const [isProspectingOpen, setIsProspectingOpen] = React.useState(true);
+
+  const prospectingItems = [
+    { id: 'osint_search' as ViewType, icon: ShieldCheck, label: 'Investigação OSINT' },
+    { id: 'google_maps' as ViewType, icon: MapPin, label: 'Google Maps' },
+    { id: 'instagram_search' as ViewType, icon: Instagram, label: 'Instagram Search' },
+    { id: 'whatsapp_search' as ViewType, icon: MessageSquare, label: 'WhatsApp Groups' },
+    { id: 'cnae_search' as ViewType, icon: Building2, label: 'Busca por CNAE' },
+    { id: 'advanced_search' as ViewType, icon: Search, label: 'Busca Avançada' },
+  ];
+
+  const mainItems = [
+    { id: 'kanban' as ViewType, icon: LayoutDashboard, label: 'Kanban Leads' },
+    { id: 'agents' as ViewType, icon: Bot, label: 'Agentes IA' },
     { id: 'analytics' as ViewType, icon: PieChart, label: 'Analytics' },
+    { id: 'integrations' as ViewType, icon: Key, label: 'Integrações' },
   ];
 
   return (
@@ -76,10 +106,10 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        <nav className="flex-1 px-4 pt-6 space-y-1 overflow-y-auto scrollbar-hide">
-          <div className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] px-4 mb-4">Inteligência</div>
+        <nav className="flex-1 px-4 space-y-1 overflow-y-auto scrollbar-hide">
+          <div className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] px-4 mb-4">Menu Principal</div>
           
-          {menuItems.map((item) => (
+          {mainItems.map((item) => (
             <button
               key={item.id}
               onClick={() => {
@@ -87,28 +117,72 @@ const Sidebar: React.FC<SidebarProps> = ({
                 if (window.innerWidth < 1024) toggleSidebar();
               }}
               className={`
-                w-full flex items-center gap-3 px-4 py-4 rounded-2xl transition-all duration-300 group
+                w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group mb-1
                 ${currentView === item.id 
-                  ? 'bg-slate-900 text-white shadow-2xl shadow-slate-200 font-bold' 
+                  ? 'bg-slate-900 text-white shadow-lg shadow-slate-200 font-bold' 
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}
               `}
             >
-              <item.icon size={20} className={currentView === item.id ? 'text-indigo-400' : 'group-hover:text-indigo-500'} />
+              <item.icon size={18} className={currentView === item.id ? 'text-indigo-400' : 'group-hover:text-indigo-500'} />
               <span className="text-sm">{item.label}</span>
             </button>
           ))}
+
+          <div className="pt-4">
+            <button
+              onClick={() => setIsProspectingOpen(!isProspectingOpen)}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-slate-900 hover:bg-slate-50 transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <Briefcase size={18} className="text-indigo-600" />
+                <span className="text-sm font-black uppercase tracking-wider">Prospecção</span>
+              </div>
+              {isProspectingOpen ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+            </button>
+
+            {isProspectingOpen && (
+              <div className="mt-1 ml-4 pl-4 border-l-2 border-slate-100 space-y-1 animate-in slide-in-from-top-2 duration-300">
+                {prospectingItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setView(item.id);
+                      if (window.innerWidth < 1024) toggleSidebar();
+                    }}
+                    className={`
+                      w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group
+                      ${currentView === item.id 
+                        ? 'bg-indigo-50 text-indigo-700 font-bold' 
+                        : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}
+                    `}
+                  >
+                    <item.icon size={16} className={currentView === item.id ? 'text-indigo-600' : 'group-hover:text-indigo-500'} />
+                    <span className="text-xs">{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </nav>
 
-        <div className="p-6">
-          <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100">
-            <div className="flex items-center gap-2 text-slate-900 text-xs font-black uppercase mb-3">
-              <History size={14} className="text-indigo-500" />
-              <span>Varredura Ativa</span>
+        <div className="p-6 space-y-4">
+          <div className="bg-slate-50 rounded-3xl p-4 border border-slate-100 flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-indigo-100">
+              {user?.name?.[0] || 'U'}
             </div>
-            <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
-              Consulte dados reais extraídos em tempo real da web.
-            </p>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-black text-slate-900 truncate">{user?.name || 'Usuário'}</p>
+              <p className="text-[10px] text-slate-500 font-medium truncate">{user?.email}</p>
+            </div>
           </div>
+          
+          <button 
+            onClick={onLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-rose-500 hover:bg-rose-50 transition-all font-bold text-sm"
+          >
+            <LogOut size={18} />
+            <span>Sair da Conta</span>
+          </button>
         </div>
       </aside>
     </>

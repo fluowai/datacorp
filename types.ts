@@ -68,15 +68,75 @@ export interface Lead {
   sourceName?: string;
 }
 
-export interface WhatsAppGroup {
-  name: string;
-  platform: 'Instagram' | 'Facebook' | 'Google' | 'LinkedIn';
+export interface InstagramProfile {
+  id: string;
+  username: string;
+  fullName: string;
+  bio: string;
+  followers: string;
+  following: string;
+  posts: string;
   link: string;
-  description: string;
-  foundAt: string;
+  isBusiness: boolean;
+  category: string;
 }
 
-export type ViewType = 'dashboard' | 'search' | 'analytics' | 'favorites' | 'biddings' | 'lead_scan' | 'whatsapp_groups' | 'settings';
+export interface WhatsAppGroup {
+  id: string;
+  name: string;
+  link: string;
+  description: string;
+  participantsCount?: string;
+  isValid: boolean;
+  lastValidated?: string;
+}
+
+export type KanbanStatus = 'lead' | 'contacted' | 'negotiating' | 'closed' | 'archived';
+
+export interface GoogleMapsPlace {
+  id: string;
+  name: string;
+  address: string;
+  rating: string;
+  reviews: string;
+  phone: string;
+  website: string;
+  category: string;
+  mapsLink: string;
+  instagram?: string;
+  facebook?: string;
+  linkedin?: string;
+  kanbanStatus?: KanbanStatus;
+  enrichedData?: EnrichedLeadData;
+}
+
+export interface EnrichedLeadData {
+  cnpj: string;
+  partners: string[];
+  capital: string;
+  status: string;
+  openingDate: string;
+  activity: string;
+}
+
+export type ViewType = 'dashboard' | 'google_maps' | 'kanban' | 'instagram_search' | 'whatsapp_search' | 'cnae_search' | 'analytics' | 'advanced_search' | 'settings' | 'osint_search' | 'agents' | 'integrations';
+
+export interface Agent {
+  id: string;
+  name: string;
+  type: 'SDR' | 'PROSPECCAO' | 'ATENDIMENTO';
+  description: string;
+  prompt: string;
+  model: string;
+  status: 'active' | 'idle';
+  createdAt: string;
+}
+
+export interface ApiKeys {
+  gemini?: string;
+  openai?: string;
+  groq?: string;
+}
 
 export type SearchMode = 'CNPJ' | 'CPF' | 'NOME';
 
@@ -93,4 +153,48 @@ export interface LeadScanParams {
   cep: string;
   limit: number;
   minCapital?: string;
+}
+
+export interface MapsProspectingParams {
+  profession: string;
+  city: string;
+  limit: number;
+}
+
+export interface CnaeSearchParams {
+  cnae: string;
+  minCapital: number;
+  city: string;
+  limit: number;
+}
+
+export interface CnaeCompany {
+  id: string;
+  name: string;
+  cnpj: string;
+  capital: string;
+  partners: string;
+  address: string;
+  phone: string;
+  website: string;
+  mapsLink: string;
+  instagram: string;
+  linkedin: string;
+  activity: string;
+}
+
+export interface ChartData {
+  name: string;
+  value: number;
+  color?: string;
+}
+
+export interface AdvancedSearchParams {
+  sector?: string;
+  city?: string;
+  state?: string;
+  minCapital?: number;
+  maxCapital?: number;
+  minEmployees?: number;
+  activity?: string;
 }
