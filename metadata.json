@@ -1,5 +1,5 @@
 {
-  "name": "DataCorp - Inteligência de Dados",
+  "name": "woosender",
   "description": "Uma plataforma avançada de consulta e análise de dados de empresas brasileiras, inspirada na Casa dos Dados, com insights gerados por IA.",
   "requestFramePermissions": [
     "camera",

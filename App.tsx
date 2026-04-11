@@ -391,10 +391,13 @@ const App: React.FC = () => {
 
     if (digitsOnly.length === 11) {
       type = 'PESSOA';
-      searchQuery = `CPF ${digitsOnly}`; // Forçar busca por CPF
+      searchQuery = `Investigação OSINT CPF ${digitsOnly} - sócio de empresas, processos judiciais, histórico profissional`;
     } else if (digitsOnly.length === 14) {
       type = 'EMPRESA';
-      searchQuery = `CNPJ ${digitsOnly}`; // Forçar busca por CNPJ
+      searchQuery = `Investigação OSINT CNPJ ${digitsOnly} - quadro societário QSA, capital social, processos, filiais, situação cadastral`;
+    } else {
+      type = 'PESSOA';
+      searchQuery = `Investigação OSINT Nome "${query}" - CPF, participações societárias, processos judiciais, LinkedIn`;
     }
     
     setSelectedItem({ name, identifier, type });
@@ -482,8 +485,15 @@ const App: React.FC = () => {
       social: text.split('#SECAO_SOCIAL#')[1]?.split('#SECAO_NOTICIAS#')[0] || '',
       noticias: text.split('#SECAO_NOTICIAS#')[1] || ''
     };
-    const risk = sections.resumo.includes('RISCO: ALTO') ? 'alto' : sections.resumo.includes('RISCO: MÉDIO') ? 'medio' : 'baixo';
-    return { sections, risk };
+    
+    let risk: 'alto' | 'medio' | 'baixo' | 'indeterminado' = 'baixo';
+    if (text.toUpperCase().includes('ALTO')) risk = 'alto';
+    else if (text.toUpperCase().includes('MÉDIO')) risk = 'medio';
+    else if (text.toUpperCase().includes('INDETERMINADO')) risk = 'indeterminado';
+
+    const noData = text.toLowerCase().includes('nenhum dado público encontrado') || text.length < 50;
+
+    return { sections, risk, noData };
   };
 
   if (!user) {
@@ -1282,11 +1292,28 @@ const App: React.FC = () => {
                   </div>
                 </div>
               ) : publicDataReport ? (() => {
-                const { sections, risk } = parseDossie(publicDataReport.text);
+                const { sections, risk, noData } = parseDossie(publicDataReport.text);
+                
+                if (noData) {
+                  return (
+                    <div className="py-20 flex flex-col items-center justify-center text-center space-y-6 animate-in fade-in duration-700">
+                      <div className="w-20 h-20 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center">
+                        <Info size={40} />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-black text-slate-900">Nenhum dado público encontrado</h3>
+                        <p className="text-slate-500 text-sm font-medium max-w-md mx-auto mt-2">
+                          Não foram encontrados registros públicos vinculados a este identificador nas fontes consultadas. Verifique se o Nome, CPF ou CNPJ está correto.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-700">
                     <div className={`col-span-full p-8 rounded-[2.5rem] border-2 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-6 ${
-                      risk === 'alto' ? 'bg-red-50 border-red-100 text-red-900' : risk === 'medio' ? 'bg-amber-50 border-amber-100 text-amber-900' : 'bg-emerald-50 border-emerald-100 text-emerald-900'
+                      risk === 'alto' ? 'bg-red-50 border-red-100 text-red-900' : risk === 'medio' ? 'bg-amber-50 border-amber-100 text-amber-900' : risk === 'indeterminado' ? 'bg-slate-50 border-slate-100 text-slate-900' : 'bg-emerald-50 border-emerald-100 text-emerald-900'
                     }`}>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">

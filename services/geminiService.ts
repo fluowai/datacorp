@@ -14,7 +14,17 @@ export const fetchPublicDataReport = async (identifier: string, query: string, t
     const ai = getAI(apiKey);
     const prompt = `REALIZE UMA INVESTIGAÇÃO EXAUSTIVA E MULTIDIMENSIONAL OSINT PARA ${type}: ${query} (${identifier}).
     
-    FONTES OBRIGATÓRIAS E ESTRATÉGIA DE BUSCA:
+    ESTRATÉGIA DE BUSCA (EXECUTE ESTAS CONSULTAS NO GOOGLE SEARCH):
+    1. "${identifier} sócio"
+    2. "${identifier} processos"
+    3. "${identifier} jusbrasil"
+    4. "${identifier} escavador"
+    5. "${identifier} quadro societário"
+    6. "${identifier} capital social"
+    7. "${identifier} consulta cnpj" (se for empresa)
+    8. "${identifier} diário oficial"
+
+    FONTES OBRIGATÓRIAS:
     ${type === 'EMPRESA' ? `
     - Realize buscas cruzadas em portais de transparência, Juntas Comerciais (JUCESP, JUCERJA, etc.) e agregadores de CNPJ (Casa dos Dados, CNPJ.biz, Econodata).
     - Busque por filiais, histórico de capital social e alterações contratuais.
@@ -25,44 +35,43 @@ export const fetchPublicDataReport = async (identifier: string, query: string, t
     `}
     - Pesquisa exaustiva no Google utilizando operadores avançados para encontrar menções em PDFs, editais e notícias.
 
+    DIRETRIZ DE VERACIDADE (CRÍTICO):
+    1. PROIBIDO ALUCINAR: Se não encontrar dados reais para o identificador "${identifier}", responda explicitamente: "Nenhum dado público encontrado para este identificador".
+    2. CITAÇÃO DE FONTES: Para cada bloco de informação, mencione a fonte (ex: "Fonte: Jusbrasil", "Fonte: Casa dos Dados").
+    3. RIGOR DE IDENTIDADE: Certifique-se de que os dados pertencem ao alvo. Não confunda homônimos.
+
     ESTRUTURE O RELATÓRIO EXATAMENTE COM ESTAS MARCAÇÕES:
 
     #SECAO_RESUMO#
-    [Resumo executivo detalhado. Se o alvo for sócio de empresas ou possuir processos, destaque o volume e a relevância logo aqui.]
+    [Resumo executivo baseado APENAS em fatos encontrados. Se nada for encontrado, informe aqui.]
     NÍVEL_DE_RISCO: [BAIXO | MÉDIO | ALTO | INDETERMINADO]
 
     #SECAO_DADOS#
-    [Dados cadastrais confirmados. Inclua o nome completo e a situação cadastral se encontrada.]
+    [Dados cadastrais confirmados via fontes oficiais.]
 
     #SECAO_SOCIOS#
-    [VÍNCULOS SOCIETÁRIOS: Liste TODAS as empresas onde o alvo aparece como sócio, administrador ou beneficiário. Informe Razão Social e CNPJ se encontrados.]
+    [VÍNCULOS SOCIETÁRIOS REAIS: Liste empresas onde o alvo é sócio/admin. Se não houver, diga "Nenhum vínculo societário encontrado".]
 
     #SECAO_JURIDICO#
-    [HISTÓRICO JUDICIAL: Liste processos encontrados, tribunais, classes processuais e o papel do alvo (Autor/Réu). Não omita processos encontrados em Diários Oficiais.]
+    [HISTÓRICO JUDICIAL REAL: Liste processos com número, tribunal e partes. Se não houver, diga "Nenhum processo judicial encontrado".]
 
     #SECAO_SOCIAL#
-    [Pegada digital e perfis profissionais (LinkedIn) que confirmem a atuação do alvo.]
+    [Pegada digital confirmada (LinkedIn, sites profissionais).]
 
     #SECAO_NOTICIAS#
-    [Menções em portais de notícias, editais ou comunicados oficiais.]
-
-    REGRAS DE OURO (MÁXIMA PRECISÃO):
-    1. INVESTIGAÇÃO PROFUNDA: Não pare no primeiro resultado. Cruze os dados para confirmar se o "João Silva" do processo é o mesmo "João Silva" sócio da empresa X.
-    2. GROUNDING TOTAL: Utilize cada link retornado pela busca para extrair o máximo de detalhes.
-    3. Se houver muitos processos ou muitas empresas, tente listar os mais recentes ou relevantes.
-    4. NUNCA invente dados, mas seja persistente na extração do que é público.`;
+    [Menções em notícias ou diários oficiais.]`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        systemInstruction: `Você é um Investigador OSINT de elite especializado em Compliance e Due Diligence. 
-        Sua missão é encontrar vínculos ocultos, participações societárias e histórico jurídico. 
-        Você deve ser exaustivo na análise dos resultados de busca. 
-        Se um CPF é sócio de várias empresas, você DEVE listar essas empresas. 
-        Se há processos, você DEVE detalhar o que foi encontrado nos tribunais ou diários oficiais. 
-        Mantenha o rigor técnico e a veracidade absoluta.`,
+        systemInstruction: `Você é um Investigador OSINT de elite. 
+        Sua prioridade número 1 é a VERACIDADE. 
+        Você prefere dizer que não encontrou nada do que fornecer um dado incerto ou falso. 
+        Analise os resultados do Google Search com extremo rigor. 
+        Se o usuário fornecer um CPF ou CNPJ, use-o como âncora para validar todas as informações. 
+        Não invente dados. Se os resultados da busca forem genéricos, informe que os dados são inconclusivos.`,
       }
     });
 
@@ -94,6 +103,11 @@ export const enrichLeadData = async (companyName: string, address: string, apiKe
     2. Identificar o Quadro de Sócios e Administradores (QSA).
     3. Verificar o Capital Social.
 
+    DIRETRIZ DE PRECISÃO:
+    - BUSCA REAL: Use o Google Search para encontrar a ficha da empresa em sites como Casa dos Dados, CNPJ.biz ou Econodata.
+    - NÃO ALUCINE: Se não encontrar o CNPJ ou os sócios reais, deixe os campos em branco ou informe "Não encontrado".
+    - VALIDAÇÃO: Certifique-se de que a empresa encontrada no endereço "${address}" é a mesma solicitada.
+
     FORMATE A RESPOSTA EXATAMENTE ASSIM:
     ---ENRICH_START---
     CNPJ: [Número do CNPJ]
@@ -102,16 +116,14 @@ export const enrichLeadData = async (companyName: string, address: string, apiKe
     SITUACAO: [Ativa/Inativa]
     ABERTURA: [Data de abertura]
     ATIVIDADE: [Descrição da atividade principal]
-    ---ENRICH_END---
-    
-    Se não encontrar o CNPJ exato, tente encontrar a empresa mais próxima pelo nome e endereço.`;
+    ---ENRICH_END---`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        systemInstruction: "Você é um especialista em enriquecimento de dados cadastrais brasileiros. Seu objetivo é cruzar nomes de estabelecimentos com bases de dados de CNPJ públicas.",
+        systemInstruction: "Você é um especialista em enriquecimento de dados cadastrais brasileiros. Sua missão é fornecer dados REAIS e ATUALIZADOS. Se não tiver certeza de um dado, não o invente.",
       }
     });
 
