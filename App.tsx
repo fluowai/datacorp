@@ -37,7 +37,7 @@ import {
 
 const App: React.FC = () => {
   const [user, setUser] = useState<any>(null);
-  const [currentView, setView] = useState<ViewType>('osint_search');
+  const [currentView, setView] = useState<ViewType>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -95,6 +95,11 @@ const App: React.FC = () => {
     ];
   });
 
+  const [recentInvestigations, setRecentInvestigations] = useState<{id: string, term: string, date: string}[]>(() => {
+    const saved = localStorage.getItem('woosender_recent_investigations');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [isCreatingAgent, setIsCreatingAgent] = useState(false);
   const [newAgent, setNewAgent] = useState<Partial<Agent>>({
     type: 'SDR',
@@ -135,6 +140,10 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('woosender_agents', JSON.stringify(agents));
   }, [agents]);
+
+  useEffect(() => {
+    localStorage.setItem('woosender_recent_investigations', JSON.stringify(recentInvestigations));
+  }, [recentInvestigations]);
 
   // Google Maps Parser
   useEffect(() => {
@@ -442,6 +451,10 @@ const App: React.FC = () => {
     setPublicDataReport(null);
     setIsSearching(true);
     setView('osint_search');
+
+    // Track investigation
+    const newInv = { id: Math.random().toString(36).substr(2, 9), term: name, date: new Date().toLocaleDateString('pt-BR') };
+    setRecentInvestigations(prev => [newInv, ...prev.slice(0, 9)]);
     try {
       const result = await fetchPublicDataReport(identifier, searchQuery, type, apiKeys.gemini);
       setPublicDataReport(result);
@@ -608,6 +621,148 @@ const App: React.FC = () => {
             </button>
           </div>
         </header>
+
+        {currentView === 'dashboard' && (
+          <div className="space-y-10 max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* Hero Section */}
+            <div className="relative overflow-hidden bg-slate-900 rounded-[3rem] p-8 lg:p-12 text-white shadow-2xl">
+              <div className="relative z-10 max-w-2xl">
+                <h2 className="text-3xl lg:text-5xl font-black tracking-tight mb-6 leading-tight">
+                  Bem-vindo ao <span className="text-indigo-400">woosender</span> Intelligence.
+                </h2>
+                <p className="text-slate-400 text-lg font-medium mb-10 leading-relaxed">
+                  Sua central de comando para prospecção B2B, enriquecimento de dados e inteligência OSINT em tempo real.
+                </p>
+                <div className="flex flex-wrap gap-4">
+                  <button onClick={() => setView('google_maps')} className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-2xl font-black transition-all flex items-center gap-3 shadow-xl shadow-indigo-500/20">
+                    <MapPin size={20} /> INICIAR PROSPECÇÃO
+                  </button>
+                  <button onClick={() => setView('osint_search')} className="bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-2xl font-black transition-all flex items-center gap-3 backdrop-blur-md">
+                    <ShieldCheck size={20} /> INVESTIGAÇÃO OSINT
+                  </button>
+                </div>
+              </div>
+              
+              {/* Abstract background elements */}
+              <div className="absolute top-0 right-0 w-1/2 h-full opacity-20 pointer-events-none">
+                <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-indigo-500 rounded-full blur-[120px]" />
+                <div className="absolute bottom-[-20%] right-[10%] w-[300px] h-[300px] bg-rose-500 rounded-full blur-[100px]" />
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all">
+                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-6">
+                  <Target size={24} />
+                </div>
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Total de Leads</p>
+                <h3 className="text-3xl font-black text-slate-900">{kanbanLeads.length + mapsPlaces.length}</h3>
+              </div>
+              <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all">
+                <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-6">
+                  <Bot size={24} />
+                </div>
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Agentes Ativos</p>
+                <h3 className="text-3xl font-black text-slate-900">{agents.filter(a => a.status === 'active').length}</h3>
+              </div>
+              <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all">
+                <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mb-6">
+                  <ShieldCheck size={24} />
+                </div>
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Auditorias OSINT</p>
+                <h3 className="text-3xl font-black text-slate-900">124</h3>
+              </div>
+              <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all">
+                <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mb-6">
+                  <Zap size={24} />
+                </div>
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Créditos Restantes</p>
+                <h3 className="text-3xl font-black text-slate-900">8.4k</h3>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Recent Activity / Leads */}
+              <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Leads Recentes</h3>
+                  <button onClick={() => setView('kanban')} className="text-indigo-600 text-xs font-black hover:underline">VER TODOS</button>
+                </div>
+                <div className="space-y-4">
+                  {kanbanLeads.slice(0, 5).map(lead => (
+                    <div key={lead.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-white hover:shadow-md transition-all group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-400 group-hover:text-indigo-600 transition-colors">
+                          <Building2 size={20} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-slate-900">{lead.name}</p>
+                          <p className="text-[10px] text-slate-500 font-medium">{lead.address}</p>
+                        </div>
+                      </div>
+                      <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
+                        lead.kanbanStatus === 'closed' ? 'bg-emerald-50 text-emerald-600' : 'bg-indigo-50 text-indigo-600'
+                      }`}>
+                        {lead.kanbanStatus}
+                      </div>
+                    </div>
+                  ))}
+                  {kanbanLeads.length === 0 && (
+                    <div className="py-12 text-center text-slate-400">
+                      <p className="text-sm font-medium italic">Nenhum lead no pipeline ainda.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick Actions / Integration Status */}
+              <div className="space-y-6">
+                <div className="bg-indigo-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-indigo-100">
+                  <h3 className="text-lg font-black mb-4">Status da API</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-indigo-200">Google Gemini</span>
+                      <span className={`flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full ${apiKeys.gemini ? 'bg-emerald-400/20 text-emerald-300' : 'bg-rose-400/20 text-rose-300'}`}>
+                        {apiKeys.gemini ? 'CONECTADO' : 'DESCONECTADO'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-indigo-200">OpenAI</span>
+                      <span className={`flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full ${apiKeys.openai ? 'bg-emerald-400/20 text-emerald-300' : 'bg-rose-400/20 text-rose-300'}`}>
+                        {apiKeys.openai ? 'CONECTADO' : 'DESCONECTADO'}
+                      </span>
+                    </div>
+                  </div>
+                  <button onClick={() => setView('integrations')} className="w-full mt-8 bg-white/10 hover:bg-white/20 py-3 rounded-xl text-xs font-black transition-all">
+                    GERENCIAR CHAVES
+                  </button>
+                </div>
+
+                <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-xl">
+                  <div className="flex items-center gap-3 mb-6">
+                    <History className="text-indigo-400" size={24} />
+                    <h3 className="text-lg font-black">Investigações Recentes</h3>
+                  </div>
+                  <div className="space-y-3">
+                    {recentInvestigations.slice(0, 3).map(inv => (
+                      <div key={inv.id} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
+                        <span className="text-xs font-bold truncate max-w-[120px]">{inv.term}</span>
+                        <span className="text-[10px] text-slate-500">{inv.date}</span>
+                      </div>
+                    ))}
+                    {recentInvestigations.length === 0 && (
+                      <p className="text-slate-500 text-[10px] italic">Nenhuma investigação recente.</p>
+                    )}
+                  </div>
+                  <button onClick={() => setView('osint_search')} className="w-full mt-6 bg-indigo-600 hover:bg-indigo-500 py-3 rounded-xl text-xs font-black transition-all shadow-lg shadow-indigo-500/20">
+                    NOVA CONSULTA
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {currentView === 'google_maps' && (
           <div className="space-y-8 max-w-7xl mx-auto">

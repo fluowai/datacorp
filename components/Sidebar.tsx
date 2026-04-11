@@ -56,8 +56,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   onInvestigate
 }) => {
   const menuItems = [
-    { id: 'kanban' as ViewType, icon: LayoutDashboard, label: 'Kanban Leads' },
-    { id: 'osint_search' as ViewType, icon: Search, label: 'Consulta Nome, CNPJ e CPF' },
+    { id: 'dashboard' as ViewType, icon: LayoutDashboard, label: 'Dashboard' },
+    { id: 'kanban' as ViewType, icon: Target, label: 'Pipeline de Leads' },
+    { id: 'osint_search' as ViewType, icon: Search, label: 'Consulta OSINT' },
     { id: 'google_maps' as ViewType, icon: MapPin, label: 'Google Maps' },
     { id: 'instagram_search' as ViewType, icon: Instagram, label: 'Instagram Search' },
     { id: 'whatsapp_search' as ViewType, icon: MessageSquare, label: 'WhatsApp Groups' },
