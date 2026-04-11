@@ -9,7 +9,7 @@ import {
   Scale, Share2, AlertTriangle, CheckCircle, Hash, Building2, Star, Menu, ExternalLink, Globe,
   Instagram, Facebook, Linkedin, LayoutDashboard, MoreVertical, Trash2, Check as CheckIcon,
   MessageSquare, UserPlus, Eye, Info, History, TrendingUp, PieChart as PieChartIcon,
-  Bot, Plus, Key
+  Bot, Plus, Key, Store, Download
 } from 'lucide-react';
 import { 
   fetchPublicDataReport, 
@@ -704,6 +704,22 @@ const App: React.FC = () => {
                         </div>
                       </div>
                       <h3 className="text-lg font-black text-slate-900 leading-tight mb-3 group-hover:text-rose-600 transition-colors">{place.name}</h3>
+                      
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {place.phone && (
+                          <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full border border-emerald-100">
+                            <CheckCircle size={10} strokeWidth={3} />
+                            <span className="text-[9px] font-black uppercase">Telefone Verificado</span>
+                          </div>
+                        )}
+                        {place.website && (
+                          <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full border border-blue-100">
+                            <Globe size={10} strokeWidth={3} />
+                            <span className="text-[9px] font-black uppercase">Site Ativo</span>
+                          </div>
+                        )}
+                      </div>
+
                       <div className="space-y-3 mb-6">
                         <div className="flex items-start gap-3">
                           <MapPin size={14} className="text-rose-400 mt-1 shrink-0" />
@@ -923,6 +939,19 @@ const App: React.FC = () => {
                   </div>
                 </div>
               ))}
+              {!isSearching && instaProfiles.length === 0 && (
+                <div className="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-6 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm">
+                  <div className="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center">
+                    <Instagram size={40} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900">Nenhum perfil encontrado</h3>
+                    <p className="text-slate-500 text-sm font-medium max-w-md mx-auto mt-2">
+                      Tente usar palavras-chave mais genéricas ou verifique a ortografia do nicho.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1100,8 +1129,23 @@ const App: React.FC = () => {
                       </div>
                     </div>
                     
-                    <h3 className="text-xl font-black text-slate-900 leading-tight mb-4 group-hover:text-indigo-600 transition-colors line-clamp-2 min-h-[3.5rem]">{company.name}</h3>
+                    <h3 className="text-xl font-black text-slate-900 leading-tight mb-3 group-hover:text-indigo-600 transition-colors line-clamp-2 min-h-[3.5rem]">{company.name}</h3>
                     
+                    <div className="flex flex-wrap gap-2 mb-5">
+                      {company.phone && (
+                        <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full border border-emerald-100">
+                          <CheckCircle size={10} strokeWidth={3} />
+                          <span className="text-[9px] font-black uppercase tracking-tighter">Contato Direto</span>
+                        </div>
+                      )}
+                      {company.website && (
+                        <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full border border-blue-100">
+                          <Globe size={10} strokeWidth={3} />
+                          <span className="text-[9px] font-black uppercase tracking-tighter">Site Oficial</span>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="space-y-4 mb-6">
                       <div className="flex items-start gap-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-100/50">
                         <MapPin size={16} className="text-rose-500 mt-0.5 shrink-0" />
@@ -1145,7 +1189,7 @@ const App: React.FC = () => {
                     <div className="h-px bg-slate-100 mb-6" />
                     <div className="grid grid-cols-2 gap-3">
                       <a href={company.mapsLink} target="_blank" className="bg-slate-900 text-white py-3.5 rounded-2xl font-black text-[10px] hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-xl shadow-slate-200">
-                        <Navigation size={14} /> MAPS
+                        <Store size={14} /> GOOGLE BUSINESS
                       </a>
                       <button 
                         onClick={() => addCnaeToKanban(company)}

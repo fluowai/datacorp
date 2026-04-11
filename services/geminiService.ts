@@ -37,8 +37,9 @@ export const fetchPublicDataReport = async (identifier: string, query: string, t
 
     DIRETRIZ DE VERACIDADE (CRÍTICO):
     1. PROIBIDO ALUCINAR: Se não encontrar dados reais para o identificador "${identifier}", responda explicitamente: "Nenhum dado público encontrado para este identificador".
-    2. CITAÇÃO DE FONTES: Para cada bloco de informação, mencione a fonte (ex: "Fonte: Jusbrasil", "Fonte: Casa dos Dados").
+    2. CITAÇÃO DE FONTES: Para cada bloco de informação, mencione a fonte e inclua o link direto se disponível (ex: "Fonte: Jusbrasil [link]", "Fonte: Casa dos Dados [link]").
     3. RIGOR DE IDENTIDADE: Certifique-se de que os dados pertencem ao alvo. Não confunda homônimos.
+    4. LINKS REAIS: Sempre que citar um processo ou registro, tente fornecer o link da fonte.
 
     ESTRUTURE O RELATÓRIO EXATAMENTE COM ESTAS MARCAÇÕES:
 
@@ -286,14 +287,17 @@ export const fetchCompaniesByCnaeStream = async (cnae: string, minCapital: numbe
     ATIVIDADE: [Descrição da atividade principal/CNAE]
     ---COMPANY_END---
     
-    IMPORTANTE: Se não encontrar o capital social exato, informe o valor mais aproximado encontrado em fontes públicas.`;
+    IMPORTANTE: 
+    - Se não encontrar uma empresa que atenda aos critérios, NÃO invente dados. 
+    - Se algum campo (como telefone ou site) não for encontrado, deixe em branco ou escreva "Não localizado".
+    - PRIORIZE dados da ficha do Google Business para contatos.`;
 
     return await ai.models.generateContentStream({
       model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        systemInstruction: "Você é um analista OSINT especializado em prospecção B2B. Sua missão é 'raspar' virtualmente o Google Search para encontrar dados cadastrais e financeiros de empresas brasileiras de forma precisa.",
+        systemInstruction: "Você é um analista OSINT especializado em prospecção B2B. Sua missão é encontrar dados cadastrais e financeiros de empresas brasileiras de forma precisa e verificável. Nunca invente dados.",
       }
     });
   } catch (error) {
