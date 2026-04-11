@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
+import Markdown from 'react-markdown';
 import Sidebar from './components/Sidebar';
 import FilterModal from './components/FilterModal';
 import AuthView from './components/AuthView';
@@ -159,7 +160,7 @@ const App: React.FC = () => {
         instagram: findValue('INSTAGRAM'),
         facebook: findValue('FACEBOOK'),
         linkedin: findValue('LINKEDIN'),
-        kanbanStatus: 'lead'
+        kanbanStatus: 'lead' as const
       };
     }).filter(p => p.name);
     setMapsPlaces(parsedPlaces);
@@ -958,12 +959,6 @@ const App: React.FC = () => {
 
         {currentView === 'whatsapp_search' && (
           <div className="space-y-8 max-w-7xl mx-auto">
-            {/* ... existing whatsapp search UI ... */}
-          </div>
-        )}
-
-        {currentView === 'whatsapp_search' && (
-          <div className="space-y-8 max-w-7xl mx-auto">
             <div className="bg-white p-6 lg:p-8 rounded-[2rem] border border-slate-100 shadow-xl">
               <div className="flex items-center gap-4 mb-8">
                 <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-100">
@@ -1025,6 +1020,19 @@ const App: React.FC = () => {
                   </div>
                 </div>
               ))}
+              {!isSearching && waGroups.length === 0 && (
+                <div className="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-6 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm">
+                  <div className="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center">
+                    <MessageSquare size={40} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900">Nenhum grupo encontrado</h3>
+                    <p className="text-slate-500 text-sm font-medium max-w-md mx-auto mt-2">
+                      Tente usar palavras-chave diferentes ou mais genéricas para encontrar grupos de convite.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1360,6 +1368,19 @@ const App: React.FC = () => {
                   </div>
                 </div>
               ))}
+              {!isSearching && advancedResults.length === 0 && (
+                <div className="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-6 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm">
+                  <div className="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center">
+                    <Search size={40} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900">Nenhum resultado encontrado</h3>
+                    <p className="text-slate-500 text-sm font-medium max-w-md mx-auto mt-2">
+                      Ajuste os filtros da busca avançada para encontrar empresas que correspondam aos seus critérios.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1450,22 +1471,30 @@ const App: React.FC = () => {
 
                     <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
                       <div className="flex items-center gap-3 mb-6 text-indigo-600"><Building2 size={24} /><h4 className="font-black text-lg">Dossiê Cadastral</h4></div>
-                      <div className="prose prose-slate prose-sm max-w-none whitespace-pre-line text-slate-600 font-medium leading-relaxed">{sections.dados}</div>
+                      <div className="prose prose-slate prose-sm max-w-none text-slate-600 font-medium leading-relaxed">
+                        <Markdown>{sections.dados}</Markdown>
+                      </div>
                     </div>
 
                     <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
                       <div className="flex items-center gap-3 mb-6 text-emerald-600"><Users size={24} /><h4 className="font-black text-lg">Quadro Societário & Capital</h4></div>
-                      <div className="prose prose-slate prose-sm max-w-none whitespace-pre-line text-slate-600 font-medium leading-relaxed">{sections.socios}</div>
+                      <div className="prose prose-slate prose-sm max-w-none text-slate-600 font-medium leading-relaxed">
+                        <Markdown>{sections.socios}</Markdown>
+                      </div>
                     </div>
 
                     <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
                       <div className="flex items-center gap-3 mb-6 text-slate-900"><Scale size={24} /><h4 className="font-black text-lg">Histórico Jurídico</h4></div>
-                      <div className="prose prose-slate prose-sm max-w-none whitespace-pre-line text-slate-600 font-medium leading-relaxed">{sections.juridico}</div>
+                      <div className="prose prose-slate prose-sm max-w-none text-slate-600 font-medium leading-relaxed">
+                        <Markdown>{sections.juridico}</Markdown>
+                      </div>
                     </div>
 
                     <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
                       <div className="flex items-center gap-3 mb-6 text-blue-600"><Share2 size={24} /><h4 className="font-black text-lg">Presença Digital</h4></div>
-                      <div className="prose prose-slate prose-sm max-w-none whitespace-pre-line text-slate-600 font-medium leading-relaxed">{sections.social}</div>
+                      <div className="prose prose-slate prose-sm max-w-none text-slate-600 font-medium leading-relaxed">
+                        <Markdown>{sections.social}</Markdown>
+                      </div>
                     </div>
 
                     <div className="col-span-full bg-slate-900 p-8 rounded-[2.5rem] text-white">
@@ -1626,6 +1655,19 @@ const App: React.FC = () => {
                   </div>
                 </div>
               ))}
+              {agents.length === 0 && (
+                <div className="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-6 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm">
+                  <div className="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center">
+                    <Bot size={40} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900">Nenhum agente criado</h3>
+                    <p className="text-slate-500 text-sm font-medium max-w-md mx-auto mt-2">
+                      Crie seu primeiro agente de IA para automatizar sua prospecção e atendimento.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
