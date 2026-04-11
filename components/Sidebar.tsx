@@ -55,19 +55,13 @@ const Sidebar: React.FC<SidebarProps> = ({
   setSearchTerm,
   onInvestigate
 }) => {
-  const [isProspectingOpen, setIsProspectingOpen] = React.useState(true);
-
-  const prospectingItems = [
-    { id: 'osint_search' as ViewType, icon: ShieldCheck, label: 'Investigação OSINT' },
+  const menuItems = [
+    { id: 'kanban' as ViewType, icon: LayoutDashboard, label: 'Kanban Leads' },
+    { id: 'osint_search' as ViewType, icon: Search, label: 'Consulta Nome, CNPJ e CPF' },
     { id: 'google_maps' as ViewType, icon: MapPin, label: 'Google Maps' },
     { id: 'instagram_search' as ViewType, icon: Instagram, label: 'Instagram Search' },
     { id: 'whatsapp_search' as ViewType, icon: MessageSquare, label: 'WhatsApp Groups' },
     { id: 'cnae_search' as ViewType, icon: Building2, label: 'Busca por CNAE' },
-    { id: 'advanced_search' as ViewType, icon: Search, label: 'Busca Avançada' },
-  ];
-
-  const mainItems = [
-    { id: 'kanban' as ViewType, icon: LayoutDashboard, label: 'Kanban Leads' },
     { id: 'agents' as ViewType, icon: Bot, label: 'Agentes IA' },
     { id: 'analytics' as ViewType, icon: PieChart, label: 'Analytics' },
     { id: 'integrations' as ViewType, icon: Key, label: 'Integrações' },
@@ -101,7 +95,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <Zap size={24} />
           </div>
           <div>
-            <h1 className="text-slate-900 font-black text-xl leading-none">DataCorp</h1>
+            <h1 className="text-slate-900 font-black text-xl leading-none uppercase tracking-tighter">woo<span className="text-indigo-600">sender</span></h1>
             <p className="text-indigo-600 text-[10px] font-bold uppercase tracking-widest mt-1">Intelligence</p>
           </div>
         </div>
@@ -109,7 +103,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto scrollbar-hide">
           <div className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] px-4 mb-4">Menu Principal</div>
           
-          {mainItems.map((item) => (
+          {menuItems.map((item) => (
             <button
               key={item.id}
               onClick={() => {
@@ -127,42 +121,6 @@ const Sidebar: React.FC<SidebarProps> = ({
               <span className="text-sm">{item.label}</span>
             </button>
           ))}
-
-          <div className="pt-4">
-            <button
-              onClick={() => setIsProspectingOpen(!isProspectingOpen)}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-slate-900 hover:bg-slate-50 transition-all group"
-            >
-              <div className="flex items-center gap-3">
-                <Briefcase size={18} className="text-indigo-600" />
-                <span className="text-sm font-black uppercase tracking-wider">Prospecção</span>
-              </div>
-              {isProspectingOpen ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
-            </button>
-
-            {isProspectingOpen && (
-              <div className="mt-1 ml-4 pl-4 border-l-2 border-slate-100 space-y-1 animate-in slide-in-from-top-2 duration-300">
-                {prospectingItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setView(item.id);
-                      if (window.innerWidth < 1024) toggleSidebar();
-                    }}
-                    className={`
-                      w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group
-                      ${currentView === item.id 
-                        ? 'bg-indigo-50 text-indigo-700 font-bold' 
-                        : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}
-                    `}
-                  >
-                    <item.icon size={16} className={currentView === item.id ? 'text-indigo-600' : 'group-hover:text-indigo-500'} />
-                    <span className="text-xs">{item.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
         </nav>
 
         <div className="p-6 space-y-4">

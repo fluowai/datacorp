@@ -36,7 +36,7 @@ import {
 
 const App: React.FC = () => {
   const [user, setUser] = useState<any>(null);
-  const [currentView, setView] = useState<ViewType>('google_maps');
+  const [currentView, setView] = useState<ViewType>('osint_search');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -74,12 +74,12 @@ const App: React.FC = () => {
   const [enrichmentProgress, setEnrichmentProgress] = useState<{current: number, total: number} | null>(null);
 
   const [apiKeys, setApiKeys] = useState<ApiKeys>(() => {
-    const saved = localStorage.getItem('datacorp_api_keys');
+    const saved = localStorage.getItem('woosender_api_keys');
     return saved ? JSON.parse(saved) : {};
   });
 
   const [agents, setAgents] = useState<Agent[]>(() => {
-    const saved = localStorage.getItem('datacorp_agents');
+    const saved = localStorage.getItem('woosender_agents');
     return saved ? JSON.parse(saved) : [
       {
         id: '1',
@@ -94,12 +94,45 @@ const App: React.FC = () => {
     ];
   });
 
+  const [isCreatingAgent, setIsCreatingAgent] = useState(false);
+  const [newAgent, setNewAgent] = useState<Partial<Agent>>({
+    type: 'SDR',
+    status: 'active',
+    model: 'Gemini 1.5 Flash'
+  });
+
+  const handleCreateAgent = () => {
+    if (!newAgent.name || !newAgent.description) {
+      alert("Preencha o nome e a descrição do agente.");
+      return;
+    }
+    const agent: Agent = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: newAgent.name,
+      type: newAgent.type as any,
+      description: newAgent.description,
+      prompt: newAgent.prompt || '',
+      model: newAgent.model || 'Gemini 1.5 Flash',
+      status: 'active',
+      createdAt: new Date().toISOString()
+    };
+    setAgents([agent, ...agents]);
+    setIsCreatingAgent(false);
+    setNewAgent({ type: 'SDR', status: 'active', model: 'Gemini 1.5 Flash' });
+  };
+
+  const handleDeleteAgent = (id: string) => {
+    if (confirm("Tem certeza que deseja excluir este agente?")) {
+      setAgents(agents.filter(a => a.id !== id));
+    }
+  };
+
   useEffect(() => {
-    localStorage.setItem('datacorp_api_keys', JSON.stringify(apiKeys));
+    localStorage.setItem('woosender_api_keys', JSON.stringify(apiKeys));
   }, [apiKeys]);
 
   useEffect(() => {
-    localStorage.setItem('datacorp_agents', JSON.stringify(agents));
+    localStorage.setItem('woosender_agents', JSON.stringify(agents));
   }, [agents]);
 
   // Google Maps Parser
@@ -378,6 +411,10 @@ const App: React.FC = () => {
   };
 
   const handleRealDataConsult = async (targetIdentifier?: string, targetName?: string) => {
+    if (!apiKeys.gemini) {
+      setView('integrations');
+      return;
+    }
     const query = targetIdentifier || targetName || searchTerm;
     if (!query || query.length < 3) return;
     
@@ -413,6 +450,10 @@ const App: React.FC = () => {
   };
 
   const handleMapsMining = async () => {
+    if (!apiKeys.gemini) {
+      setView('integrations');
+      return;
+    }
     if (!mapsSearch) return;
     setIsSearching(true);
     setStreamingText('');
@@ -426,6 +467,10 @@ const App: React.FC = () => {
   };
 
   const handleInstaMining = async () => {
+    if (!apiKeys.gemini) {
+      setView('integrations');
+      return;
+    }
     if (!instaSearch) return;
     setIsSearching(true);
     setStreamingText('');
@@ -439,6 +484,10 @@ const App: React.FC = () => {
   };
 
   const handleWaMining = async () => {
+    if (!apiKeys.gemini) {
+      setView('integrations');
+      return;
+    }
     if (!waSearch) return;
     setIsSearching(true);
     setStreamingText('');
@@ -452,6 +501,10 @@ const App: React.FC = () => {
   };
 
   const handleCnaeMining = async () => {
+    if (!apiKeys.gemini) {
+      setView('integrations');
+      return;
+    }
     if (!cnaeSearch || !citySearch) return;
     setIsSearching(true);
     setStreamingText('');
@@ -465,6 +518,10 @@ const App: React.FC = () => {
   };
 
   const handleAdvancedSearch = async () => {
+    if (!apiKeys.gemini) {
+      setView('integrations');
+      return;
+    }
     setIsSearching(true);
     setStreamingText('');
     setAdvancedResults([]);
@@ -516,11 +573,30 @@ const App: React.FC = () => {
         onInvestigate={() => handleRealDataConsult()}
       />
 
-      <main className="flex-1 lg:ml-64 p-4 lg:p-12">
+      <main className="flex-1 lg:ml-64 p-4 lg:p-12 relative">
+        {!apiKeys.gemini && (
+          <div className="mb-8 bg-amber-50 border border-amber-200 p-6 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 animate-in slide-in-from-top duration-500">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-amber-100">
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <p className="text-lg font-black text-amber-900">Configuração Necessária</p>
+                <p className="text-sm font-medium text-amber-700">A chave do Google Gemini API não foi configurada. As funções de prospecção e OSINT estão desativadas.</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setView('integrations')}
+              className="w-full md:w-auto bg-amber-600 text-white px-8 py-4 rounded-2xl font-black text-sm hover:bg-amber-700 transition-all shadow-xl shadow-amber-100"
+            >
+              CONFIGURAR AGORA
+            </button>
+          </div>
+        )}
         <header className="mb-10 max-w-6xl mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-center justify-between w-full">
             <div>
-              <h1 className="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight italic">DataCorp OSINT</h1>
+              <h1 className="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight italic">woosender OSINT</h1>
               <p className="text-slate-500 font-medium text-sm lg:text-base">Inteligência de mercado e enriquecimento de leads.</p>
             </div>
             <button 
@@ -1389,10 +1465,87 @@ const App: React.FC = () => {
                   <p className="text-slate-500 font-medium">Crie e gerencie sua força de trabalho sintética.</p>
                 </div>
               </div>
-              <button className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black text-sm hover:bg-slate-800 transition-all flex items-center gap-2 shadow-xl">
+              <button 
+                onClick={() => setIsCreatingAgent(true)}
+                className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black text-sm hover:bg-slate-800 transition-all flex items-center gap-2 shadow-xl"
+              >
                 <Plus size={20} /> CRIAR NOVO AGENTE
               </button>
             </div>
+
+            {isCreatingAgent && (
+              <div className="bg-white p-8 rounded-[2.5rem] border-2 border-indigo-100 shadow-2xl animate-in zoom-in-95 duration-300">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-xl font-black text-slate-900">Configurar Novo Agente</h3>
+                  <button onClick={() => setIsCreatingAgent(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X size={20} /></button>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Nome do Agente</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ex: SDR Atendimento"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 font-bold text-sm outline-none focus:border-indigo-600 transition-all"
+                        value={newAgent.name || ''}
+                        onChange={e => setNewAgent({...newAgent, name: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Tipo de Função</label>
+                      <select 
+                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 font-bold text-sm outline-none focus:border-indigo-600 transition-all"
+                        value={newAgent.type}
+                        onChange={e => setNewAgent({...newAgent, type: e.target.value as any})}
+                      >
+                        <option value="SDR">SDR (Qualificação)</option>
+                        <option value="PROSPECCAO">Prospecção Ativa</option>
+                        <option value="ATENDIMENTO">Atendimento / SDR</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Modelo de IA</label>
+                      <select 
+                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 font-bold text-sm outline-none focus:border-indigo-600 transition-all"
+                        value={newAgent.model}
+                        onChange={e => setNewAgent({...newAgent, model: e.target.value})}
+                      >
+                        <option value="Gemini 1.5 Flash">Gemini 1.5 Flash (Rápido)</option>
+                        <option value="Gemini 1.5 Pro">Gemini 1.5 Pro (Inteligente)</option>
+                        <option value="GPT-4o">GPT-4o (OpenAI)</option>
+                        <option value="Llama 3 70B">Llama 3 70B (Groq)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Descrição / Objetivo</label>
+                      <textarea 
+                        placeholder="O que este agente deve fazer?"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 font-bold text-sm outline-none focus:border-indigo-600 transition-all h-[120px]"
+                        value={newAgent.description || ''}
+                        onChange={e => setNewAgent({...newAgent, description: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Prompt de Sistema (Instruções)</label>
+                      <textarea 
+                        placeholder="Instruções detalhadas de comportamento..."
+                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 font-bold text-sm outline-none focus:border-indigo-600 transition-all h-[120px]"
+                        value={newAgent.prompt || ''}
+                        onChange={e => setNewAgent({...newAgent, prompt: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex justify-end gap-4">
+                  <button onClick={() => setIsCreatingAgent(false)} className="px-8 py-4 rounded-2xl font-black text-sm text-slate-500 hover:bg-slate-50 transition-all">CANCELAR</button>
+                  <button onClick={handleCreateAgent} className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-sm hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-100">SALVAR AGENTE</button>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {agents.map(agent => (
@@ -1420,7 +1573,10 @@ const App: React.FC = () => {
 
                   <div className="flex gap-2">
                     <button className="flex-1 bg-slate-900 text-white py-3 rounded-xl font-black text-xs hover:bg-slate-800 transition-all">CONFIGURAR</button>
-                    <button className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:text-rose-600 transition-all">
+                    <button 
+                      onClick={() => handleDeleteAgent(agent.id)}
+                      className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:text-rose-600 transition-all"
+                    >
                       <Trash2 size={18} />
                     </button>
                   </div>
