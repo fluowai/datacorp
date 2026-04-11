@@ -89,6 +89,7 @@ export interface WhatsAppGroup {
   participantsCount?: string;
   isValid: boolean;
   lastValidated?: string;
+  platform?: string;
 }
 
 export type KanbanStatus = 'lead' | 'contacted' | 'negotiating' | 'closed' | 'archived';
@@ -119,7 +120,7 @@ export interface EnrichedLeadData {
   activity: string;
 }
 
-export type ViewType = 'dashboard' | 'google_maps' | 'kanban' | 'instagram_search' | 'whatsapp_search' | 'cnae_search' | 'analytics' | 'advanced_search' | 'settings' | 'osint_search' | 'agents' | 'integrations';
+export type ViewType = 'dashboard' | 'google_maps' | 'kanban' | 'instagram_search' | 'whatsapp_search' | 'cnae_search' | 'analytics' | 'advanced_search' | 'settings' | 'osint_search' | 'agents' | 'integrations' | 'lead_scan';
 
 export interface Agent {
   id: string;

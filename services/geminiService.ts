@@ -143,10 +143,12 @@ export const fetchGoogleMapsStream = async (query: string, limit: number = 10, a
     const ai = getAI(apiKey);
     const prompt = `BUSCA DE ESTABELECIMENTOS REAIS NO GOOGLE MAPS PARA: ${query}.
     
-    DIRETRIZES:
-    - Encontre exatamente ${limit} locais reais, com endereços e avaliações.
-    - Extraia o máximo de detalhes de contato (telefone, site).
-    - Tente encontrar links de redes sociais (Instagram, Facebook, LinkedIn) para cada local.
+    INSTRUÇÕES CRÍTICAS DE LOCALIZAÇÃO:
+    1. Foque EXCLUSIVAMENTE em resultados dentro da região solicitada (${query}).
+    2. Verifique o endereço de cada local para garantir que pertence à cidade/estado corretos.
+    3. Ignore resultados patrocinados ou de outras regiões que o Google possa sugerir.
+    4. Encontre exatamente ${limit} locais reais, com endereços e avaliações.
+    5. Extraia o máximo de detalhes de contato (telefone, site).
     
     FORMATE CADA LOCAL ASSIM:
     ---PLACE_START---
@@ -157,7 +159,7 @@ export const fetchGoogleMapsStream = async (query: string, limit: number = 10, a
     TELEFONE: [Telefone de contato]
     SITE: [URL do site oficial]
     CATEGORIA: [Tipo de estabelecimento]
-    MAPS_LINK: [Link direto para o Google Maps]
+    MAPS_LINK: [Link direto da ficha da empresa no Google - ex: https://www.google.com/search?q=NOME+DA+EMPRESA+ENDERECO ou link curto de compartilhamento do Maps]
     INSTAGRAM: [Link do Instagram se encontrado]
     FACEBOOK: [Link do Facebook se encontrado]
     LINKEDIN: [Link do LinkedIn se encontrado]
@@ -168,7 +170,7 @@ export const fetchGoogleMapsStream = async (query: string, limit: number = 10, a
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        systemInstruction: "Você é um especialista em prospecção local. Seu objetivo é encontrar estabelecimentos reais no Google Maps e extrair seus dados públicos.",
+        systemInstruction: "Você é um especialista em prospecção local via Google Maps. Sua missão é localizar estabelecimentos REAIS e ATIVOS na região exata solicitada. Você deve validar o endereço de cada resultado antes de incluí-lo. SEMPRE forneça o link que abra diretamente a ficha da empresa no Google (Knowledge Panel/Business Profile).",
       }
     });
   } catch (error) {
@@ -222,18 +224,28 @@ export const fetchInstagramProfiles = async (niche: string, limit: number = 10, 
 export const fetchWhatsAppGroups = async (query: string, limit: number = 10, apiKey?: string) => {
   try {
     const ai = getAI(apiKey);
-    const prompt = `BUSCA DE GRUPOS DE WHATSAPP PARA: ${query}.
+    const prompt = `REALIZE UMA BUSCA EXAUSTIVA DE GRUPOS DE WHATSAPP PARA: "${query}".
+    
+    ESTRATÉGIA DE BUSCA (GROUNDING):
+    1. Pesquise links de convite (chat.whatsapp.com) em:
+       - Instagram (perfis e posts)
+       - Facebook (grupos e páginas)
+       - LinkedIn (posts e artigos)
+       - Google (sites de nicho e diretórios)
+    2. Use operadores como: "site:instagram.com chat.whatsapp.com ${query}", "site:facebook.com chat.whatsapp.com ${query}", etc.
     
     DIRETRIZES:
-    - Encontre links de convite de grupos de WhatsApp reais (chat.whatsapp.com).
-    - Valide se o link parece legítimo e extraia o nome e descrição do grupo.
+    - Encontre links de convite de grupos de WhatsApp reais.
+    - Identifique a PLATAFORMA de origem onde o link foi encontrado.
+    - Extraia o nome e uma breve descrição do propósito do grupo.
     
-    FORMATE CADA GRUPO ASSIM:
+    FORMATE CADA GRUPO EXATAMENTE ASSIM:
     ---WA_START---
     NOME: [Nome do Grupo]
     LINK: [Link de convite completo]
     DESCRICAO: [Descrição do que se trata o grupo]
-    PARTICIPANTES: [Estimativa de participantes se disponível]
+    PLATAFORMA: [Instagram | Facebook | LinkedIn | Google | Outro]
+    PARTICIPANTES: [Estimativa se disponível]
     VALIDO: [TRUE | FALSE]
     ---WA_END---`;
 
@@ -281,7 +293,7 @@ export const fetchCompaniesByCnaeStream = async (cnae: string, minCapital: numbe
     ENDERECO: [Endereço completo com CEP]
     TELEFONE: [Telefone com DDD]
     SITE: [URL do site oficial]
-    MAPS: [Link direto do Google Maps]
+    MAPS: [Link que abra a ficha da empresa no Google - ex: https://www.google.com/search?q=Nome+Da+Empresa+Endereco ou link de compartilhamento curto]
     INSTAGRAM: [Link do perfil no Instagram]
     LINKEDIN: [Link do perfil no LinkedIn]
     ATIVIDADE: [Descrição da atividade principal/CNAE]
@@ -297,7 +309,7 @@ export const fetchCompaniesByCnaeStream = async (cnae: string, minCapital: numbe
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        systemInstruction: "Você é um analista OSINT especializado em prospecção B2B. Sua missão é encontrar dados cadastrais e financeiros de empresas brasileiras de forma precisa e verificável. Nunca invente dados.",
+        systemInstruction: "Você é um analista OSINT especializado em prospecção B2B. Sua missão é encontrar dados cadastrais e financeiros de empresas brasileiras de forma precisa e verificável. Nunca invente dados. SEMPRE forneça links que abram a ficha da empresa no Google (Google Business Profile).",
       }
     });
   } catch (error) {
@@ -339,7 +351,7 @@ export const fetchAdvancedSearchStream = async (params: any, limit: number = 10,
     ENDERECO: [Endereço completo]
     TELEFONE: [Telefone]
     SITE: [URL do site]
-    MAPS: [Link do Google Maps]
+    MAPS: [Link que abra a ficha da empresa no Google - ex: https://www.google.com/search?q=Nome+Da+Empresa+Endereco ou link de compartilhamento curto]
     INSTAGRAM: [Link do Instagram]
     LINKEDIN: [Link do LinkedIn]
     ATIVIDADE: [Descrição da atividade]
@@ -352,11 +364,58 @@ export const fetchAdvancedSearchStream = async (params: any, limit: number = 10,
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        systemInstruction: "Você é um especialista em inteligência de mercado e prospecção B2B avançada.",
+        systemInstruction: "Você é um especialista em inteligência de mercado e prospecção B2B avançada. Sua missão é localizar empresas reais e fornecer links que abram suas fichas no Google e perfis sociais.",
       }
     });
   } catch (error) {
     console.error("Advanced Search Error:", error);
+    throw error;
+  }
+};
+
+/**
+ * Escaneamento de Leads em Tempo Real (Streaming)
+ */
+export const scanCompaniesStream = async (params: any, apiKey?: string) => {
+  try {
+    const ai = getAI(apiKey);
+    const { uf, city, cnae, cep, limit } = params;
+    
+    const prompt = `REALIZE UM ESCANEAMENTO DE LEADS EM TEMPO REAL PARA:
+    - UF: ${uf || 'Qualquer'}
+    - CIDADE: ${city || 'Qualquer'}
+    - CNAE: ${cnae || 'Qualquer'}
+    - CEP: ${cep || 'Qualquer'}
+    
+    INSTRUÇÕES:
+    1. Encontre exatamente ${limit} empresas reais.
+    2. Priorize dados da "Casa dos Dados" para CNPJ e Sócios.
+    3. Priorize dados do "Google Business" para Telefone e Site.
+    4. Se não encontrar, deixe em branco.
+    
+    FORMATE CADA LEAD ASSIM:
+    ---LEAD_START---
+    NOME: [Nome da Empresa]
+    CNPJ: [CNPJ]
+    ENDERECO: [Endereço]
+    SOCIOS: [Sócios separados por vírgula]
+    TELEFONES: [Telefones separados por vírgula]
+    MAPS: [Link que abra a ficha da empresa no Google - ex: https://www.google.com/search?q=Nome+Da+Empresa+Endereco ou link de compartilhamento curto]
+    FONTE: [Link da fonte dos dados]
+    ATIVIDADE: [Atividade Principal]
+    CAPITAL: [Capital Social]
+    ---LEAD_END---`;
+
+    return await ai.models.generateContentStream({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }],
+        systemInstruction: "Você é um robô de mineração de leads B2B de alta precisão. Sua prioridade é a validade dos links de contato e localização (Ficha do Google Business).",
+      }
+    });
+  } catch (error) {
+    console.error("Scan Error:", error);
     throw error;
   }
 };

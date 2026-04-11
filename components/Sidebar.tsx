@@ -57,6 +57,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const menuItems = [
     { id: 'dashboard' as ViewType, icon: LayoutDashboard, label: 'Dashboard' },
+    { id: 'lead_scan' as ViewType, icon: Zap, label: 'Escaneamento Realtime' },
     { id: 'kanban' as ViewType, icon: Target, label: 'Pipeline de Leads' },
     { id: 'osint_search' as ViewType, icon: Search, label: 'Consulta OSINT' },
     { id: 'google_maps' as ViewType, icon: MapPin, label: 'Google Maps' },

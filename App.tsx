@@ -4,13 +4,13 @@ import Markdown from 'react-markdown';
 import Sidebar from './components/Sidebar';
 import FilterModal from './components/FilterModal';
 import AuthView from './components/AuthView';
-import { ViewType, GoogleMapsPlace, EnrichedLeadData, InstagramProfile, WhatsAppGroup, CnaeCompany, AdvancedSearchParams, ChartData, Agent, ApiKeys } from './types';
+import { ViewType, GoogleMapsPlace, EnrichedLeadData, InstagramProfile, WhatsAppGroup, CnaeCompany, AdvancedSearchParams, ChartData, Agent, ApiKeys, Lead, LeadScanParams } from './types';
 import { 
   Search, X, MapPin, ShieldCheck, Loader2, Target, Users, Navigation, Phone, Zap, 
   Scale, Share2, AlertTriangle, CheckCircle, Hash, Building2, Star, Menu, ExternalLink, Globe,
   Instagram, Facebook, Linkedin, LayoutDashboard, MoreVertical, Trash2, Check as CheckIcon,
   MessageSquare, UserPlus, Eye, Info, History, TrendingUp, PieChart as PieChartIcon,
-  Bot, Plus, Key, Store, Download
+  Bot, Plus, Key, Store, Download, DollarSign
 } from 'lucide-react';
 import { 
   fetchPublicDataReport, 
@@ -53,6 +53,7 @@ const App: React.FC = () => {
   const [waGroups, setWaGroups] = useState<WhatsAppGroup[]>([]);
   const [cnaeCompanies, setCnaeCompanies] = useState<CnaeCompany[]>([]);
   const [advancedResults, setAdvancedResults] = useState<CnaeCompany[]>([]);
+  const [scannedLeads, setScannedLeads] = useState<Lead[]>([]);
   
   const [mapsSearch, setMapsSearch] = useState('');
   const [instaSearch, setInstaSearch] = useState('');
@@ -60,6 +61,14 @@ const App: React.FC = () => {
   const [cnaeSearch, setCnaeSearch] = useState('');
   const [minCapital, setMinCapital] = useState(100000);
   const [citySearch, setCitySearch] = useState('');
+
+  const [scanParams, setScanParams] = useState<LeadScanParams>({
+    uf: '',
+    city: '',
+    cnae: '',
+    cep: '',
+    limit: 10
+  });
 
   const [advFilters, setAdvFilters] = useState<AdvancedSearchParams>({
     sector: '',
@@ -101,6 +110,7 @@ const App: React.FC = () => {
   });
 
   const [isCreatingAgent, setIsCreatingAgent] = useState(false);
+  const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [newAgent, setNewAgent] = useState<Partial<Agent>>({
     type: 'SDR' as const,
     status: 'active' as const,
@@ -125,6 +135,19 @@ const App: React.FC = () => {
     setAgents([agent, ...agents]);
     setIsCreatingAgent(false);
     setNewAgent({ type: 'SDR' as const, status: 'active' as const, model: 'Gemini 1.5 Flash' });
+  };
+
+  const handleUpdateAgent = () => {
+    if (!editingAgent || !editingAgent.name || !editingAgent.description) {
+      alert("Preencha o nome e a descrição do agente.");
+      return;
+    }
+    setAgents(agents.map(a => a.id === editingAgent.id ? editingAgent : a));
+    setEditingAgent(null);
+  };
+
+  const handleEditAgent = (agent: Agent) => {
+    setEditingAgent(agent);
   };
 
   const handleDeleteAgent = (id: string) => {
@@ -218,6 +241,7 @@ const App: React.FC = () => {
         name: findValue('NOME'),
         link: findValue('LINK'),
         description: findValue('DESCRICAO'),
+        platform: findValue('PLATAFORMA'),
         participantsCount: findValue('PARTICIPANTES'),
         isValid: findValue('VALIDO').toUpperCase() === 'TRUE',
         lastValidated: new Date().toLocaleString()
@@ -287,6 +311,34 @@ const App: React.FC = () => {
       };
     }).filter(c => c.name && c.name.length > 2);
     setAdvancedResults(parsed);
+  }, [streamingText, currentView]);
+
+  // Lead Scan Parser
+  useEffect(() => {
+    if (currentView !== 'lead_scan') return;
+    const blocks = streamingText.split('---LEAD_START---').slice(1);
+    const parsed: Lead[] = blocks.map(block => {
+      const cleanBlock = block.split('---LEAD_END---')[0];
+      const lines = cleanBlock.split('\n').map(l => l.trim()).filter(l => l !== '');
+      const findValue = (key: string) => {
+        const line = lines.find(l => l.toUpperCase().includes(key.toUpperCase() + ':'));
+        if (!line) return '';
+        const parts = line.split(':');
+        return parts.slice(1).join(':').trim();
+      };
+      return {
+        name: findValue('NOME'),
+        cnpj: findValue('CNPJ'),
+        address: findValue('ENDERECO'),
+        partners: findValue('SOCIOS').split(',').map(s => s.trim()).filter(s => s),
+        phones: findValue('TELEFONES').split(',').map(s => s.trim()).filter(s => s),
+        googleBusinessLink: findValue('MAPS'),
+        sourceLink: findValue('FONTE'),
+        activity: findValue('ATIVIDADE'),
+        capitalSocial: findValue('CAPITAL')
+      };
+    }).filter(l => l.name);
+    setScannedLeads(parsed);
   }, [streamingText, currentView]);
 
   const handleEnrichment = async (placeIndex: number, isBatch = false) => {
@@ -547,6 +599,23 @@ const App: React.FC = () => {
     } catch (error) { alert("Erro na busca avançada."); } finally { setIsSearching(false); }
   };
 
+  const handleLeadScan = async () => {
+    if (!apiKeys.gemini) {
+      setView('integrations');
+      return;
+    }
+    setIsSearching(true);
+    setStreamingText('');
+    setScannedLeads([]);
+    try {
+      const { scanCompaniesStream } = await import('./services/geminiService');
+      const stream = await scanCompaniesStream(scanParams, apiKeys.gemini);
+      for await (const chunk of stream) {
+        setStreamingText(prev => prev + (chunk.text || ''));
+      }
+    } catch (error) { alert("Erro no escaneamento de leads."); } finally { setIsSearching(false); }
+  };
+
   const parseDossie = (text: string) => {
     const sections = {
       resumo: text.split('#SECAO_RESUMO#')[1]?.split('#SECAO_DADOS#')[0] || '',
@@ -657,7 +726,7 @@ const App: React.FC = () => {
                   <Target size={24} />
                 </div>
                 <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Total de Leads</p>
-                <h3 className="text-3xl font-black text-slate-900">{kanbanLeads.length + mapsPlaces.length}</h3>
+                <h3 className="text-3xl font-black text-slate-900">{kanbanLeads.length + mapsPlaces.length + cnaeCompanies.length}</h3>
               </div>
               <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all">
                 <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-6">
@@ -671,14 +740,14 @@ const App: React.FC = () => {
                   <ShieldCheck size={24} />
                 </div>
                 <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Auditorias OSINT</p>
-                <h3 className="text-3xl font-black text-slate-900">124</h3>
+                <h3 className="text-3xl font-black text-slate-900">{recentInvestigations.length}</h3>
               </div>
               <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all">
                 <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mb-6">
                   <Zap size={24} />
                 </div>
                 <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Créditos Restantes</p>
-                <h3 className="text-3xl font-black text-slate-900">8.4k</h3>
+                <h3 className="text-3xl font-black text-slate-900">{(10000 - (kanbanLeads.length * 10) - (recentInvestigations.length * 50)).toLocaleString()}</h3>
               </div>
             </div>
 
@@ -1143,8 +1212,22 @@ const App: React.FC = () => {
               {waGroups.map((group) => (
                 <div key={group.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
                   <div className="flex items-start justify-between mb-4">
-                    <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
-                      <Users size={24} />
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
+                        <Users size={24} />
+                      </div>
+                      {group.platform && (
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Origem</span>
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                            {group.platform.toLowerCase().includes('instagram') && <Instagram size={12} className="text-pink-500" />}
+                            {group.platform.toLowerCase().includes('facebook') && <Facebook size={12} className="text-blue-600" />}
+                            {group.platform.toLowerCase().includes('linkedin') && <Linkedin size={12} className="text-blue-700" />}
+                            {group.platform.toLowerCase().includes('google') && <Globe size={12} className="text-slate-500" />}
+                            {group.platform}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     {group.isValid ? (
                       <div className="flex items-center gap-1 bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black border border-emerald-100">
@@ -1775,6 +1858,79 @@ const App: React.FC = () => {
               </div>
             )}
 
+            {editingAgent && (
+              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="bg-white p-8 rounded-[2.5rem] border-2 border-indigo-100 shadow-2xl w-full max-w-4xl animate-in zoom-in-95 duration-300">
+                  <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-xl font-black text-slate-900">Editar Agente: {editingAgent.name}</h3>
+                    <button onClick={() => setEditingAgent(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X size={20} /></button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Nome do Agente</label>
+                        <input 
+                          type="text" 
+                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 font-bold text-sm outline-none focus:border-indigo-600 transition-all"
+                          value={editingAgent.name}
+                          onChange={e => setEditingAgent({...editingAgent, name: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Tipo de Função</label>
+                        <select 
+                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 font-bold text-sm outline-none focus:border-indigo-600 transition-all"
+                          value={editingAgent.type}
+                          onChange={e => setEditingAgent({...editingAgent, type: e.target.value as any})}
+                        >
+                          <option value="SDR">SDR (Qualificação)</option>
+                          <option value="PROSPECCAO">Prospecção Ativa</option>
+                          <option value="ATENDIMENTO">Atendimento / SDR</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Modelo de IA</label>
+                        <select 
+                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 font-bold text-sm outline-none focus:border-indigo-600 transition-all"
+                          value={editingAgent.model}
+                          onChange={e => setEditingAgent({...editingAgent, model: e.target.value})}
+                        >
+                          <option value="Gemini 1.5 Flash">Gemini 1.5 Flash (Rápido)</option>
+                          <option value="Gemini 1.5 Pro">Gemini 1.5 Pro (Inteligente)</option>
+                          <option value="GPT-4o">GPT-4o (OpenAI)</option>
+                          <option value="Llama 3 70B">Llama 3 70B (Groq)</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Descrição / Objetivo</label>
+                        <textarea 
+                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 font-bold text-sm outline-none focus:border-indigo-600 transition-all h-[120px]"
+                          value={editingAgent.description}
+                          onChange={e => setEditingAgent({...editingAgent, description: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Prompt de Sistema (Instruções)</label>
+                        <textarea 
+                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 font-bold text-sm outline-none focus:border-indigo-600 transition-all h-[120px]"
+                          value={editingAgent.prompt}
+                          onChange={e => setEditingAgent({...editingAgent, prompt: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 flex justify-end gap-4">
+                    <button onClick={() => setEditingAgent(null)} className="px-8 py-4 rounded-2xl font-black text-sm text-slate-500 hover:bg-slate-50 transition-all">CANCELAR</button>
+                    <button onClick={handleUpdateAgent} className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-sm hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-100">ATUALIZAR AGENTE</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {agents.map(agent => (
                 <div key={agent.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
@@ -1800,7 +1956,12 @@ const App: React.FC = () => {
                   </div>
 
                   <div className="flex gap-2">
-                    <button className="flex-1 bg-slate-900 text-white py-3 rounded-xl font-black text-xs hover:bg-slate-800 transition-all">CONFIGURAR</button>
+                    <button 
+                      onClick={() => handleEditAgent(agent)}
+                      className="flex-1 bg-slate-900 text-white py-3 rounded-xl font-black text-xs hover:bg-slate-800 transition-all"
+                    >
+                      EDITAR AGENTE
+                    </button>
                     <button 
                       onClick={() => handleDeleteAgent(agent.id)}
                       className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:text-rose-600 transition-all"
@@ -1921,16 +2082,185 @@ const App: React.FC = () => {
           </div>
         )}
 
+        {currentView === 'lead_scan' && (
+          <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-500">
+            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
+                  <Zap size={28} />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">Escaneamento Realtime</h2>
+                  <p className="text-slate-500 font-medium">Mineração profunda de leads com IA e Grounding.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 bg-slate-50 p-4 rounded-[2rem] border border-slate-200">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2">UF</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ex: SP"
+                    className="w-full bg-white border border-slate-100 rounded-xl py-3 px-4 font-bold text-sm outline-none focus:border-indigo-600 transition-all"
+                    value={scanParams.uf}
+                    onChange={e => setScanParams({...scanParams, uf: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Cidade</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ex: Campinas"
+                    className="w-full bg-white border border-slate-100 rounded-xl py-3 px-4 font-bold text-sm outline-none focus:border-indigo-600 transition-all"
+                    value={scanParams.city}
+                    onChange={e => setScanParams({...scanParams, city: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2">CNAE / Nicho</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ex: Software"
+                    className="w-full bg-white border border-slate-100 rounded-xl py-3 px-4 font-bold text-sm outline-none focus:border-indigo-600 transition-all"
+                    value={scanParams.cnae}
+                    onChange={e => setScanParams({...scanParams, cnae: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2">CEP</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ex: 01001-000"
+                    className="w-full bg-white border border-slate-100 rounded-xl py-3 px-4 font-bold text-sm outline-none focus:border-indigo-600 transition-all"
+                    value={scanParams.cep}
+                    onChange={e => setScanParams({...scanParams, cep: e.target.value})}
+                  />
+                </div>
+                <div className="flex items-end">
+                  <button 
+                    onClick={handleLeadScan} 
+                    disabled={isSearching}
+                    className="w-full bg-indigo-600 text-white py-3 rounded-xl font-black text-sm hover:bg-indigo-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-100"
+                  >
+                    {isSearching ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
+                    ESCANEAR
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {scannedLeads.map((lead, idx) => (
+                <div key={idx} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group animate-in slide-in-from-bottom-4 duration-500">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="bg-indigo-50 text-indigo-600 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">LEAD CAPTURADO</span>
+                        <span className="text-slate-300 text-[10px] font-mono">{lead.cnpj || 'CNPJ NÃO LOCALIZADO'}</span>
+                      </div>
+                      <h3 className="text-xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors leading-tight">{lead.name}</h3>
+                    </div>
+                    <div className="flex gap-2">
+                      {lead.sourceLink && (
+                        <a href={lead.sourceLink} target="_blank" className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:text-indigo-600 transition-all">
+                          <ExternalLink size={18} />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Quadro Societário</p>
+                        <div className="flex flex-wrap gap-2">
+                          {lead.partners.length > 0 ? lead.partners.map((p, i) => (
+                            <span key={i} className="bg-slate-50 text-slate-700 text-[10px] font-bold px-3 py-1 rounded-lg border border-slate-100">{p}</span>
+                          )) : <span className="text-slate-400 text-[10px] italic">Não localizado</span>}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Canais de Contato</p>
+                        <div className="space-y-2">
+                          {lead.phones.map((p, i) => (
+                            <div key={i} className="flex items-center gap-2 text-xs font-bold text-slate-900">
+                              <Phone size={14} className="text-emerald-500" /> {p}
+                            </div>
+                          ))}
+                          {lead.phones.length === 0 && <span className="text-slate-400 text-[10px] italic">Nenhum telefone encontrado</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Localização & Atividade</p>
+                        <div className="space-y-2">
+                          <div className="flex items-start gap-2 text-xs font-medium text-slate-600">
+                            <MapPin size={14} className="text-rose-500 mt-0.5 shrink-0" /> {lead.address}
+                          </div>
+                          <div className="flex items-start gap-2 text-xs font-bold text-slate-900">
+                            <Building2 size={14} className="text-indigo-500 mt-0.5 shrink-0" /> {lead.activity}
+                          </div>
+                          {lead.capitalSocial && (
+                            <div className="flex items-center gap-2 text-xs font-black text-emerald-600">
+                              <DollarSign size={14} /> {lead.capitalSocial}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-6 border-t border-slate-50">
+                    <button 
+                      onClick={() => handleRealDataConsult(lead.cnpj, lead.name)}
+                      className="flex-1 bg-slate-900 text-white py-3 rounded-xl font-black text-xs hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+                    >
+                      <ShieldCheck size={16} /> AUDITAR
+                    </button>
+                    {lead.googleBusinessLink && (
+                      <a 
+                        href={lead.googleBusinessLink} 
+                        target="_blank"
+                        className="flex-1 bg-white border border-slate-200 text-slate-900 py-3 rounded-xl font-black text-xs hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                      >
+                        <Store size={16} className="text-rose-500" /> GOOGLE BUSINESS
+                      </a>
+                    )}
+                    <button className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:text-indigo-600 transition-all">
+                      <Star size={18} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              
+              {scannedLeads.length === 0 && !isSearching && (
+                <div className="col-span-full py-24 flex flex-col items-center justify-center text-center space-y-6 bg-white rounded-[3rem] border border-slate-100 shadow-sm">
+                  <div className="w-24 h-24 bg-slate-50 text-slate-200 rounded-full flex items-center justify-center">
+                    <Zap size={48} />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900">Pronto para Escanear</h3>
+                    <p className="text-slate-500 font-medium max-w-md mx-auto mt-2">
+                      Preencha os filtros acima e inicie o escaneamento em tempo real para encontrar leads qualificados.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {currentView === 'analytics' && (
           <div className="space-y-8 max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Gráfico de Capital Social */}
               <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl">
                 <div className="flex items-center gap-4 mb-8">
                   <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center">
                     <PieChartIcon size={20} />
                   </div>
-                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Distribuição por Capital Social</h3>
+                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Capital Social (Top 10)</h3>
                 </div>
                 <div className="h-[300px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
@@ -1978,8 +2308,53 @@ const App: React.FC = () => {
                         paddingAngle={5}
                         dataKey="value"
                       >
-                        {[0, 1, 2, 3].map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={['#4f46e5', '#10b981', '#f59e0b', '#ef4444'][index % 4]} />
+                        {[0, 1, 2, 3, 4, 5].map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#3b82f6'][index % 6]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#fff', borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                      />
+                      <Legend verticalAlign="bottom" height={36}/>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Status do Pipeline */}
+              <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center">
+                    <Target size={20} />
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Status do Pipeline</h3>
+                </div>
+                <div className="h-[300px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={(() => {
+                          const counts: Record<string, number> = {
+                            'lead': 0,
+                            'contacted': 0,
+                            'negotiating': 0,
+                            'closed': 0,
+                            'archived': 0
+                          };
+                          kanbanLeads.forEach(l => {
+                            if (l.kanbanStatus) counts[l.kanbanStatus]++;
+                          });
+                          return Object.entries(counts).map(([name, value]) => ({ name, value }));
+                        })()}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {[0, 1, 2, 3, 4].map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={['#94a3b8', '#6366f1', '#f59e0b', '#10b981', '#ef4444'][index]} />
                         ))}
                       </Pie>
                       <Tooltip 
