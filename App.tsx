@@ -85,11 +85,11 @@ const App: React.FC = () => {
       {
         id: '1',
         name: 'SDR Alpha',
-        type: 'SDR',
+        type: 'SDR' as const,
         description: 'Agente especializado em qualificação inicial de leads.',
         prompt: 'Você é um SDR sênior. Sua missão é qualificar leads...',
         model: 'gemini-1.5-flash',
-        status: 'active',
+        status: 'active' as const,
         createdAt: new Date().toISOString()
       }
     ];
@@ -102,8 +102,8 @@ const App: React.FC = () => {
 
   const [isCreatingAgent, setIsCreatingAgent] = useState(false);
   const [newAgent, setNewAgent] = useState<Partial<Agent>>({
-    type: 'SDR',
-    status: 'active',
+    type: 'SDR' as const,
+    status: 'active' as const,
     model: 'Gemini 1.5 Flash'
   });
 
@@ -119,12 +119,12 @@ const App: React.FC = () => {
       description: newAgent.description,
       prompt: newAgent.prompt || '',
       model: newAgent.model || 'Gemini 1.5 Flash',
-      status: 'active',
+      status: 'active' as const,
       createdAt: new Date().toISOString()
     };
     setAgents([agent, ...agents]);
     setIsCreatingAgent(false);
-    setNewAgent({ type: 'SDR', status: 'active', model: 'Gemini 1.5 Flash' });
+    setNewAgent({ type: 'SDR' as const, status: 'active' as const, model: 'Gemini 1.5 Flash' });
   };
 
   const handleDeleteAgent = (id: string) => {
@@ -346,7 +346,7 @@ const App: React.FC = () => {
 
   const addToKanban = (place: GoogleMapsPlace) => {
     if (kanbanLeads.find(l => l.id === place.id)) return;
-    setKanbanLeads(prev => [...prev, { ...place, kanbanStatus: 'lead' }]);
+    setKanbanLeads(prev => [...prev, { ...place, kanbanStatus: 'lead' as const }]);
   };
 
   const addCnaeToKanban = (company: CnaeCompany) => {
@@ -364,7 +364,7 @@ const App: React.FC = () => {
       category: company.activity,
       rating: 'N/A',
       reviews: 'N/A',
-      kanbanStatus: 'lead',
+      kanbanStatus: 'lead' as const,
       enrichedData: {
         cnpj: company.cnpj,
         partners: company.partners.split(',').map(s => s.trim()),
@@ -397,7 +397,7 @@ const App: React.FC = () => {
       category: company.activity,
       rating: 'N/A',
       reviews: 'N/A',
-      kanbanStatus: 'lead',
+      kanbanStatus: 'lead' as const,
       enrichedData: {
         cnpj: company.cnpj,
         partners: company.partners.split(',').map(s => s.trim()),
